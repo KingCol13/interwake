@@ -1,0 +1,7 @@
+1. Client requests from server
+2. Server sends random bytes (salt)
+	or use diffie-hellman to get a salt? maybe in v2
+	this prevents a listener brute forcing password once they know the salt, could just make password bigger?
+3. Client concats authentication password and salt, hashes and sends
+4. Server broadcasts WOL packet
+5. Server sends confirmation, e.g: "Accepted."
