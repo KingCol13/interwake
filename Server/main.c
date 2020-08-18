@@ -10,14 +10,23 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
+#include <gcrypt.h>     //crypto stuff
 
 #define TRUE   1
 #define FALSE  0
 #define PORT 42304
 #define MAX_EVENTS 500
 
-//TODO: fix all buffer overflow stuff, make sure all string are 0 terminated if they should be
-#define BUFSIZE 1024
+#define NONCELENGTH 32
+#define DIGEST_SIZE 32
+
+struct clientData{
+    int fd;
+    unsigned char nonce[NONCELENGTH];
+};
+
+//TODO: double check all buffer overflow stuff, especially on sent/received stuff
+const unsigned char password[] = "TestingPassword12345";
 
 int main(){
     int opt = 1;
@@ -99,29 +108,59 @@ int main(){
                     exit(EXIT_FAILURE);
                 }
 
-                //char buffer[1025] = {0};
-                //read( new_socket , buffer, 1024);
-                //printf("%s\n",buffer );
-                char hello[] = "Hello from server!\n\0";
+                unsigned char nonceBuf[NONCELENGTH] = {'\0'};
+                gcry_create_nonce(nonceBuf, NONCELENGTH);
 
-                if(send(new_socket, hello, strlen(hello), 0)==-1){
+                printf("Nonce: ");
+                for(unsigned int i=0; i<NONCELENGTH; i++){
+                    printf("%02x", nonceBuf[i]);
+                }
+                printf("\n");
+
+                printf("Sending nonce\n");
+                if(send(new_socket, nonceBuf, NONCELENGTH, 0)==-1){
                     perror("send");
                     exit(EXIT_FAILURE);
                 }
             }//if its not the master socket, then a client has progressed
             else{
-                char buffer[BUFSIZE] = {'\0'};
-                int numBytesRead = read(ep_ret[i].data.fd, buffer, BUFSIZE);
-                if(numBytesRead == -1){
-                    perror("read");
-                    exit(EXIT_FAILURE);
+                //if the connection is broken
+                if(ep_ret[i].events & EPOLLRDHUP){
+                    printf("Client diconnected event.");
+                    //remove socket from polling table
+                    if(epoll_ctl(epoll_fd, EPOLL_CTL_DEL, ep_ret[i].data.fd, NULL) == -1){
+                        perror("epoll_ctl");
+                        exit(EXIT_FAILURE);
+                    }
+                    //close socket
+                    close(ep_ret[i].data.fd);
                 }
-                printf("Message from client on socket %d: %s\n", ep_ret[i].data.fd, buffer);
+                //if there is data to be read and the socket wasn't closed
+                else if(ep_ret[i].events & EPOLLIN){
+                    printf("Input available event.");
+                    //allocate buffer for receiving hash
+                    unsigned char hashBuf[DIGEST_SIZE] = {'\0'};
+                    //read hash from socket
+                    int numBytesRead = read(ep_ret[i].data.fd, hashBuf, DIGEST_SIZE);
+                    if(numBytesRead == -1){
+                        perror("read");
+                        printf("Error here\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    printf("Read %d bytes\n", numBytesRead);
 
-                char hello[] = "I love you!\n\0";
-                if(send(ep_ret[i].data.fd, hello, strlen(hello), 0)==-1){
-                    perror("send");
-                    exit(EXIT_FAILURE);
+                    //print the received hash
+                    printf("Hash from client on socket %d: ", ep_ret[i].data.fd);
+                    for(unsigned int i=0; i<DIGEST_SIZE; i++){
+                        printf("%02x", hashBuf[i]);
+                    }
+                    printf("\n");
+
+                    char hello[] = "Hello from server!\n\0";
+                    if(send(ep_ret[i].data.fd, hello, strlen(hello), 0)==-1){
+                        perror("send");
+                        exit(EXIT_FAILURE);
+                    }
                 }
             }
         }

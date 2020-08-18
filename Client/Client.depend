@@ -1,8 +1,9 @@
 # depslib dependency file v1.0
-1597513616 source:/home/kingsley/coding/WOL/Client/main.c
+1597756433 source:/home/kingsley/coding/WOL/Client/main.c
 	<stdio.h>
 	<sys/socket.h>
 	<arpa/inet.h>
 	<unistd.h>
 	<string.h>
+	<gcrypt.h>
 
