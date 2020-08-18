@@ -25,7 +25,7 @@
 
 //TODO: double check all buffer overflow stuff, especially on sent/received stuff
 const unsigned char password[] = "TestingPassword12345";
-const char macAddress[] = "jimblyjambly";
+const char macAddress[] = "f4:30:b9:55:f0:73";
 
 struct ep_ev_data{
     int fd;
@@ -182,12 +182,10 @@ int main(){
                 new_data->fd = new_socket;
                 new_data->nonce = malloc(NONCELENGTH);
                 //malloc and configure new epoll event
-                struct epoll_event *clientEE = malloc(sizeof(struct epoll_event));
-                clientEE->events = EPOLLIN | EPOLLRDHUP;
-                clientEE->data.ptr = new_data;
+                ep_ev.data.ptr = new_data;
 
                 //add the new socket to polling
-                if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, clientEE) == -1){
+                if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, new_socket, &ep_ev) == -1){
                     perror("epoll_ctl");
                     exit(EXIT_FAILURE);
                 }
@@ -222,7 +220,6 @@ int main(){
                     //free data in epoll event
                     free(((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce);
                     free((struct ep_ev_data *) ep_ret[i].data.ptr);
-                    free(&ep_ret[i]);
                 }
                 //if there is data to be read and the socket wasn't closed
                 else if(ep_ret[i].events & EPOLLIN){
