@@ -73,13 +73,31 @@ int main(int argc, char const *argv[]){
     }
     printf("\n");
 
+    //sleep before sending hash
+    sleep(1);
+
     //send the hash
     numBytes = send(sock , hash , DIGEST_SIZE , 0 );
     if(numBytes == -1){
         perror("send");
         exit(EXIT_FAILURE);
     }
-    printf("Hello message sent\n");
+
+    printf("%d bytes of hash sent\n", numBytes);
+
+    //free resources
+    gcry_md_close(hash_context);
+
+    char serverMessage[255];
+    numBytes = read(sock, serverMessage, 255);
+    if(numBytes == -1){
+        perror("send");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Recieved from server: %s\n", serverMessage);
+
+    close(sock);
 
     return 0;
 }

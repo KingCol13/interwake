@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1597564811 source:/home/kingsley/coding/WOL/Server/main.c
+1597771402 source:/home/kingsley/coding/WOL/Server/main.c
 	<stdio.h>
 	<string.h>
 	<stdlib.h>
@@ -10,4 +10,5 @@
 	<sys/socket.h>
 	<netinet/in.h>
 	<sys/epoll.h>
+	<gcrypt.h>
 
