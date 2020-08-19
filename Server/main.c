@@ -98,6 +98,22 @@ void sendWOLPacket(){
     close(broadcastSocket);
 }
 
+void disconnectClient(int epoll_fd, struct epoll_event ep_ev){
+    int clientSocket = ( (struct ep_ev_data *) ep_ev.data.ptr)->fd;
+    unsigned char *nonce = ( (struct ep_ev_data *) ep_ev.data.ptr)->nonce;
+    //remove socket from polling table
+    if(epoll_ctl(epoll_fd, EPOLL_CTL_DEL, clientSocket, NULL) == -1){
+        perror("epoll_ctl");
+        exit(EXIT_FAILURE);
+    }
+    //close socket
+    close(clientSocket);
+    //free data in epoll event
+    free(nonce);
+    free(ep_ev.data.ptr);
+    printf("Disconnected client with socket file descriptor: %d.\n", clientSocket);
+}
+
 int main(){
     int opt = 1;
 
@@ -209,17 +225,7 @@ int main(){
                 printf("Non master socket event: %x\n", ep_ret[i].events);
                 //if the connection is broken
                 if(ep_ret[i].events & EPOLLRDHUP){
-                    printf("Client diconnected event.\n");
-                    //remove socket from polling table
-                    if(epoll_ctl(epoll_fd, EPOLL_CTL_DEL, event_socket_fd, NULL) == -1){
-                        perror("epoll_ctl");
-                        exit(EXIT_FAILURE);
-                    }
-                    //close socket
-                    close(event_socket_fd);
-                    //free data in epoll event
-                    free(((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce);
-                    free((struct ep_ev_data *) ep_ret[i].data.ptr);
+                    disconnectClient(epoll_fd, ep_ret[i]);
                 }
                 //if there is data to be read and the socket wasn't closed
                 else if(ep_ret[i].events & EPOLLIN){
@@ -234,59 +240,68 @@ int main(){
                     }
                     printf("Read %d bytes\n", numBytesRead);
                     //TODO: close connection if incorrect number of bytes received
-
-                    //print the received hash
-                    printf("Hash from client on socket %d: ", event_socket_fd);
-                    for(unsigned int i=0; i<DIGEST_SIZE; i++){
-                        printf("%02x", hashBuf[i]);
+                    if(numBytesRead < DIGEST_SIZE){
+                        printf("Insufficient digest size, closing connection.");
+                        disconnectClient(epoll_fd, ep_ret[i]);
                     }
-                    printf("\n");
+                    else{   //correct number of hash bites sent
 
-                    unsigned char *nonceBuf = ((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce;
+                        //print the received hash
+                        printf("Hash from client on socket %d: ", event_socket_fd);
+                        for(unsigned int i=0; i<DIGEST_SIZE; i++){
+                            printf("%02x", hashBuf[i]);
+                        }
+                        printf("\n");
 
-                    unsigned char preHash[sizeof(password)+NONCELENGTH];
-                    memcpy(preHash, password, sizeof(password));
-                    memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
+                        unsigned char *nonceBuf = ((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce;
 
-                    gcry_md_hd_t hash_context;
-                    //initialise hash context
-                    gcry_md_open(&hash_context, GCRY_MD_SHA3_256, GCRY_MD_FLAG_SECURE);
-                    //hash the preHash concatenation
-                    gcry_md_write(hash_context, preHash, sizeof(password)+NONCELENGTH);
-                    //get the result of hashing
-                    unsigned char *serverHash = gcry_md_read(hash_context, GCRY_MD_SHA3_256);
+                        unsigned char preHash[sizeof(password)+NONCELENGTH];
+                        memcpy(preHash, password, sizeof(password));
+                        memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
 
-                    //print hash
-                    printf("server hash: ");
-                    for (unsigned int i = 0; i < DIGEST_SIZE; i++){
-                        printf("%02x", serverHash[i]);
-                    }
-                    printf("\n");
+                        gcry_md_hd_t hash_context;
+                        //initialise hash context
+                        gcry_md_open(&hash_context, GCRY_MD_SHA3_256, GCRY_MD_FLAG_SECURE);
+                        //hash the preHash concatenation
+                        gcry_md_write(hash_context, preHash, sizeof(password)+NONCELENGTH);
+                        //get the result of hashing
+                        unsigned char *serverHash = gcry_md_read(hash_context, GCRY_MD_SHA3_256);
 
-                    //compare our hash to hash from client
-                    int auth_val = memcmp(serverHash, hashBuf, DIGEST_SIZE);
-                    //free hash context resources
-                    gcry_md_close(hash_context);
+                        //print hash
+                        printf("server hash: ");
+                        for (unsigned int i = 0; i < DIGEST_SIZE; i++){
+                            printf("%02x", serverHash[i]);
+                        }
+                        printf("\n");
 
-                    if(auth_val==0){
-                        printf("Authentication successful. Sending wake packet.\n");
-                        sendWOLPacket();
-                    }
-                    else{
-                        /*
-                        Authentication was unsuccessful so disconnect from client
-                        and free resources
-                        */
-                    }
+                        //compare our hash to hash from client
+                        int auth_val = memcmp(serverHash, hashBuf, DIGEST_SIZE);
+                        //free hash context resources
+                        gcry_md_close(hash_context);
 
-                    char hello[] = "Hello from server!\n\0";
-                    if(send(event_socket_fd, hello, strlen(hello), 0)==-1){
-                        perror("send");
-                        exit(EXIT_FAILURE);
-                    }
-                }
-            }
-        }
-    }
+                        if(auth_val==0){ //authentication succesful
+                            printf("Authentication successful. Sending wake packet.\n");
+                            sendWOLPacket();
+                            char msgSuccess[] = "Success.\n\0";
+                            if(send(event_socket_fd, msgSuccess, strlen(msgSuccess), 0)==-1){
+                                perror("send");
+                                exit(EXIT_FAILURE);
+                            }
+                            disconnectClient(epoll_fd, ep_ret[i]);
+                        }
+                        else{ //authentication unsuccessful
+                            printf("Authentication unsuccessful. Closing connection.\n");
+                            char msgFailure[] = "Failure.\n\0";
+                            if(send(event_socket_fd, msgFailure, strlen(msgFailure), 0)==-1){
+                                perror("send");
+                                exit(EXIT_FAILURE);
+                            }
+                            disconnectClient(epoll_fd, ep_ret[i]);
+                        } //authentication unsuccessful
+                    } //correct number of hash bites sent
+                } //data to read event
+            } //not the master socket
+        } //loop through epoll events
+    } //main while loop
     return 0;
 }
