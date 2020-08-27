@@ -229,7 +229,7 @@ int main(){
                 }
                 //if there is data to be read and the socket wasn't closed
                 else if(ep_ret[i].events & EPOLLIN){
-                    printf("Input available event.");
+                    printf("Input available event.\n");
                     //allocate buffer for receiving hash
                     unsigned char hashBuf[DIGEST_SIZE] = {'\0'};
                     //read hash from socket
@@ -241,7 +241,7 @@ int main(){
                     printf("Read %d bytes\n", numBytesRead);
                     //TODO: close connection if incorrect number of bytes received
                     if(numBytesRead < DIGEST_SIZE){
-                        printf("Insufficient digest size, closing connection.");
+                        printf("Insufficient digest size, closing connection.\n");
                         disconnectClient(epoll_fd, ep_ret[i]);
                     }
                     else{   //correct number of hash bites sent

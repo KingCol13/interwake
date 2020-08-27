@@ -1,7 +1,7 @@
 # depslib dependency file v1.0
-1597749903 source:/home/kingsley/coding/WOL/Test/main.c
+1598548059 source:/home/kingsley/coding/WOL/Test/main.c
 	<stdio.h>
-	"crypt.h"
+	<gcrypt.h>
 
 1597749920 /home/kingsley/coding/WOL/Test/crypt.h
 	<stdio.h>
