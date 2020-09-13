@@ -20,6 +20,10 @@ ReadOnlyPaths=/usr/local/etc/rpiwol
 StandardOutput=journal+console
 StandardError=journal+console
 
+#restart after 5s if crashes
+Restart=on-failure
+RestartSec=5s
+
 MemoryDenyWriteExecute=true
 NoNewPrivileges=true
 PrivateTmp=true
