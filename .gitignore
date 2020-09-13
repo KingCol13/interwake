@@ -1,6 +1,7 @@
 mykey
 *.depend
 *.layout
+*.a
 obj/
 bin/
 build/

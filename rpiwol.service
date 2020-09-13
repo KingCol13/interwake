@@ -6,9 +6,19 @@ Type=simple
 ExecStart=/usr/local/sbin/rpiwol-daemon
 WorkingDirectory=/usr/local/etc/rpiwol
 
+#Dynamic user implies:
+#ProtectSystem=strict
+#ProtectHome=read-only
+#PrivateTmp=yes
+#RemoveIPC=yes
 DynamicUser=true
-RuntimeDirectory=fai-monitor
-RuntimeDirectoryMode=755
+
+#Only allow access to keyfile
+ReadOnlyPaths=/usr/local/etc/rpiwol
+
+#redirect outputs to journal
+StandardOutput=journal+console
+StandardError=journal+console
 
 MemoryDenyWriteExecute=true
 NoNewPrivileges=true
@@ -21,7 +31,7 @@ PrivateDevices=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
 
-RestrictAddressFamilies=AF_INET AF_INET6
+RestrictAddressFamilies=AF_INET
 RestrictRealtime=true
 
 [Install]

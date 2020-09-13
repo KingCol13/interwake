@@ -51,7 +51,7 @@ int read_keyfile(const char *keyfile, unsigned char *keyBuffer){
 
 	retval = fread(keyBuffer, 1, KEY_LENGTH, keyHandle);
 	if(retval<KEY_LENGTH){
-		printf("Keyfile too short. Exiting.\n");
+		fprintf(stderr, "Keyfile too short. Exiting.\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -61,11 +61,8 @@ int read_keyfile(const char *keyfile, unsigned char *keyBuffer){
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Read key: ");
-	for(unsigned int i=0; i<KEY_LENGTH; i++){
-		printf("%02x", keyBuffer[i]);
-	}
-	printf("\n");
+	fprintf(stdout, "Read keyfile.\n");
+	fflush(stdout);
 
 	return 0;
 }
@@ -94,7 +91,7 @@ void sendWOLPacket(){
         exit(EXIT_FAILURE);
     }
 
-    printf("broadcast socket: %d\n", broadcastSocket);
+    fprintf(stdout, "broadcast socket: %d\n", broadcastSocket);
 
     //set to reuse address
     if(setsockopt(broadcastSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) == -1){
@@ -149,7 +146,8 @@ void disconnectClient(int epoll_fd, struct epoll_event ep_ev){
     //free data in epoll event
     free(nonce);
     free(ep_ev.data.ptr);
-    printf("Disconnected client with socket file descriptor: %d.\n", clientSocket);
+    fprintf(stdout, "Disconnected client with socket file descriptor: %d.\n", clientSocket);
+    fflush(stdout);
 }
 
 int main(){
@@ -223,7 +221,7 @@ int main(){
         for(int i=0; i<numEvents; i++){
             //extract the socket file descriptor of the event that was triggered
             int event_socket_fd = ((struct ep_ev_data *) ep_ret[i].data.ptr)->fd;
-            printf("\nepoll returned file descriptor %d\n", event_socket_fd);
+            fprintf(stdout, "\nepoll returned file descriptor %d\n", event_socket_fd);
 
             //if the master socket descriptor changed,
             if(event_socket_fd == master_fd){
@@ -234,7 +232,7 @@ int main(){
                     exit(EXIT_FAILURE);
                 }
 
-                printf("New connection , socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                fprintf(stdout, "New connection , socket fd is %d , ip is : %s , port : %d\n", new_socket, inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
                 //malloc and configure new client data
                 struct ep_ev_data *new_data = malloc(sizeof(struct ep_ev_data));
@@ -252,27 +250,27 @@ int main(){
                 unsigned char *nonceBuf = new_data->nonce;
                 Lib_RandomBuffer_System_randombytes(nonceBuf, NONCELENGTH);
 
-                printf("Nonce: ");
+                fprintf(stdout, "Nonce: ");
                 for(unsigned int i=0; i<NONCELENGTH; i++){
-                    printf("%02x", nonceBuf[i]);
+                    fprintf(stdout, "%02x", nonceBuf[i]);
                 }
-                printf("\n");
+                fprintf(stdout, "\n");
 
-                printf("Sending nonce\n");
+                fprintf(stdout, "Sending nonce\n");
                 if(send(new_socket, nonceBuf, NONCELENGTH, 0)==-1){
                     perror("send");
                     exit(EXIT_FAILURE);
                 }
             }//if its not the master socket, then a client has progressed
             else{
-                printf("Non master socket event: %x\n", ep_ret[i].events);
+                fprintf(stdout, "Non master socket event: %x\n", ep_ret[i].events);
                 //if the connection is broken
                 if(ep_ret[i].events & EPOLLRDHUP){
                     disconnectClient(epoll_fd, ep_ret[i]);
                 }
                 //if there is data to be read and the socket wasn't closed
                 else if(ep_ret[i].events & EPOLLIN){
-                    printf("Input available event.\n");
+                    fprintf(stdout, "Input available event.\n");
                     //allocate buffer for receiving hash
                     unsigned char hashBuf[DIGEST_SIZE] = {'\0'};
                     //read hash from socket
@@ -281,20 +279,20 @@ int main(){
                         perror("read");
                         exit(EXIT_FAILURE);
                     }
-                    printf("Read %d bytes\n", numBytesRead);
+                    fprintf(stdout, "Read %d bytes\n", numBytesRead);
                     //TODO: close connection if incorrect number of bytes received
                     if(numBytesRead < DIGEST_SIZE){
-                        printf("Insufficient digest size, closing connection.\n");
+                        fprintf(stderr, "Insufficient digest size, closing connection.\n");
                         disconnectClient(epoll_fd, ep_ret[i]);
                     }
                     else{   //correct number of hash bites sent
 
                         //print the received hash
-                        printf("Hash from client on socket %d: ", event_socket_fd);
+                        fprintf(stdout, "Hash from client on socket %d: ", event_socket_fd);
                         for(unsigned int i=0; i<DIGEST_SIZE; i++){
-                            printf("%02x", hashBuf[i]);
+                            fprintf(stdout, "%02x", hashBuf[i]);
                         }
-                        printf("\n");
+                        fprintf(stdout, "\n");
 
                         unsigned char *nonceBuf = ((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce;
 
@@ -306,17 +304,17 @@ int main(){
                         Hacl_SHA3_sha3_512(KEY_LENGTH+NONCELENGTH, preHash, serverHash);
 
                         //print hash
-                        printf("server hash: ");
+                        fprintf(stdout, "server hash: ");
                         for (unsigned int i = 0; i < DIGEST_SIZE; i++){
-                            printf("%02x", serverHash[i]);
+                            fprintf(stdout, "%02x", serverHash[i]);
                         }
-                        printf("\n");
+                        fprintf(stdout, "\n");
 
                         //compare our hash to hash from client
                         int auth_val = memcmp(serverHash, hashBuf, DIGEST_SIZE);
 
                         if(auth_val==0){ //authentication succesful
-                            printf("Authentication successful. Sending wake packet.\n");
+                            fprintf(stdout, "Authentication successful. Sending wake packet.\n");
                             sendWOLPacket();
                             char msgSuccess[] = "Success.\n";
                             if(send(event_socket_fd, msgSuccess, strlen(msgSuccess), 0)==-1){
@@ -326,7 +324,7 @@ int main(){
                             disconnectClient(epoll_fd, ep_ret[i]);
                         }
                         else{ //authentication unsuccessful
-                            printf("Authentication unsuccessful. Closing connection.\n");
+                            fprintf(stdout, "Authentication unsuccessful. Closing connection.\n");
                             char msgFailure[] = "Failure.\n";
                             if(send(event_socket_fd, msgFailure, strlen(msgFailure), 0)==-1){
                                 perror("send");
@@ -337,6 +335,7 @@ int main(){
                     } //correct number of hash bites sent
                 } //data to read event
             } //not the master socket
+            fflush(stdout);
         } //loop through epoll events
     } //main while loop
     return 0;

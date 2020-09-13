@@ -42,12 +42,6 @@ int read_keyfile(const char *keyfile, unsigned char *keyBuffer){
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Read key: ");
-	for(unsigned int i=0; i<KEY_LENGTH; i++){
-		printf("%02x", keyBuffer[i]);
-	}
-	printf("\n");
-
 	return 0;
 }
 
