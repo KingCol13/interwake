@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <gcrypt.h>
+
+#include "../hacl/Hacl_SHA3.h"
 
 #define PORT 42304
 #define NONCELENGTH 32
@@ -57,7 +58,7 @@ int main(int argc, char const *argv[]){
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
-    // Convert IPv4 and IPv6 addresses from text to binary form
+    // Convert IPv4 addresses from text to binary form
     char serverIP[100] = {'\0'};
     hostname_to_ip(serverHostname, serverIP);
     if(inet_pton(AF_INET, serverIP, &serv_addr.sin_addr)<=0)
@@ -93,13 +94,8 @@ int main(int argc, char const *argv[]){
     memcpy(preHash, password, sizeof(password));
     memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
 
-    gcry_md_hd_t hash_context;
-    //initialise hash context
-    gcry_md_open(&hash_context, GCRY_MD_SHA3_256, GCRY_MD_FLAG_SECURE);
-    //hash the preHash concatenation
-    gcry_md_write(hash_context, preHash, sizeof(password)+NONCELENGTH);
-    //get the result of hashing
-    unsigned char *hash = gcry_md_read(hash_context, GCRY_MD_SHA3_256);
+    unsigned char hash[DIGEST_SIZE];
+    Hacl_SHA3_sha3_256(sizeof(password)+NONCELENGTH, preHash, hash);
 
     //print hash
     printf("hash: ");
@@ -120,16 +116,15 @@ int main(int argc, char const *argv[]){
 
     printf("%d bytes of hash sent\n", numBytes);
 
-    //free resources
-    gcry_md_close(hash_context);
-
-    char serverMessage[255];
+    char serverMessage[255] = {'\0'};
     numBytes = read(sock, serverMessage, 255);
     if(numBytes == -1){
         perror("send");
         exit(EXIT_FAILURE);
     }
 
+    //force message to be null terminated
+    serverMessage[254] = '\0';
     printf("Recieved from server: %s\n", serverMessage);
 
     close(sock);

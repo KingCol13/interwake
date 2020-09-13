@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DKRML_VERIFIED_UINT128" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -33,9 +34,41 @@
 		</Compiler>
 		<Linker>
 			<Add library="gcrypt" />
-			<Add library="/home/kingsley/coding/WOL/Test/libevercrypt.a" />
 		</Linker>
 		<Unit filename="crypt.h" />
+		<Unit filename="hacl/FStar_UInt128.h" />
+		<Unit filename="hacl/FStar_UInt128_Verified.h" />
+		<Unit filename="hacl/FStar_UInt_8_16_32_64.h" />
+		<Unit filename="hacl/Hacl_Curve25519_51.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hacl/Hacl_Curve25519_51.h" />
+		<Unit filename="hacl/Hacl_Kremlib.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hacl/Hacl_Kremlib.h" />
+		<Unit filename="hacl/Hacl_SHA3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hacl/Hacl_SHA3.h" />
+		<Unit filename="hacl/Lib_Memzero0.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hacl/Lib_Memzero0.h" />
+		<Unit filename="hacl/Lib_RandomBuffer_System.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="hacl/Lib_RandomBuffer_System.h" />
+		<Unit filename="hacl/LowStar_Endianness.h" />
+		<Unit filename="hacl/callconv.h" />
+		<Unit filename="hacl/compat.h" />
+		<Unit filename="hacl/evercrypt_targetconfig.h" />
+		<Unit filename="hacl/fstar_uint128_gcc64.h" />
+		<Unit filename="hacl/fstar_uint128_struct_endianness.h" />
+		<Unit filename="hacl/libintvector.h" />
+		<Unit filename="hacl/lowstar_endianness.h" />
+		<Unit filename="hacl/target.h" />
+		<Unit filename="hacl/types.h" />
 		<Unit filename="host2ip.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />

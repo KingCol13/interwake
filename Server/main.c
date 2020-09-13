@@ -10,7 +10,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/epoll.h>
-#include <gcrypt.h>     //crypto stuff
+
+#include "../hacl/Hacl_SHA3.h"
+#include "../hacl/Hacl_Curve25519_51.h"
+#include "../hacl/Lib_RandomBuffer_System.h"
 
 #define TRUE   1
 #define FALSE  0
@@ -25,7 +28,7 @@
 
 //TODO: double check all buffer overflow stuff, especially on sent/received stuff
 const unsigned char password[] = "TestingPassword12345";
-const char macAddress[] = "f4:30:b9:55:f0:73";
+const char macAddress[] = "2c:f0:5d:26:46:76";
 
 struct ep_ev_data{
     int fd;
@@ -207,7 +210,7 @@ int main(){
                 }
 
                 unsigned char *nonceBuf = new_data->nonce;
-                gcry_create_nonce(nonceBuf, NONCELENGTH);
+                Lib_RandomBuffer_System_randombytes(nonceBuf, NONCELENGTH);
 
                 printf("Nonce: ");
                 for(unsigned int i=0; i<NONCELENGTH; i++){
@@ -259,13 +262,8 @@ int main(){
                         memcpy(preHash, password, sizeof(password));
                         memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
 
-                        gcry_md_hd_t hash_context;
-                        //initialise hash context
-                        gcry_md_open(&hash_context, GCRY_MD_SHA3_256, GCRY_MD_FLAG_SECURE);
-                        //hash the preHash concatenation
-                        gcry_md_write(hash_context, preHash, sizeof(password)+NONCELENGTH);
-                        //get the result of hashing
-                        unsigned char *serverHash = gcry_md_read(hash_context, GCRY_MD_SHA3_256);
+                        unsigned char serverHash[DIGEST_SIZE];
+                        Hacl_SHA3_sha3_256(sizeof(password)+NONCELENGTH, preHash, serverHash);
 
                         //print hash
                         printf("server hash: ");
@@ -276,13 +274,11 @@ int main(){
 
                         //compare our hash to hash from client
                         int auth_val = memcmp(serverHash, hashBuf, DIGEST_SIZE);
-                        //free hash context resources
-                        gcry_md_close(hash_context);
 
                         if(auth_val==0){ //authentication succesful
                             printf("Authentication successful. Sending wake packet.\n");
                             sendWOLPacket();
-                            char msgSuccess[] = "Success.\n\0";
+                            char msgSuccess[] = "Success.\n";
                             if(send(event_socket_fd, msgSuccess, strlen(msgSuccess), 0)==-1){
                                 perror("send");
                                 exit(EXIT_FAILURE);
@@ -291,7 +287,7 @@ int main(){
                         }
                         else{ //authentication unsuccessful
                             printf("Authentication unsuccessful. Closing connection.\n");
-                            char msgFailure[] = "Failure.\n\0";
+                            char msgFailure[] = "Failure.\n";
                             if(send(event_socket_fd, msgFailure, strlen(msgFailure), 0)==-1){
                                 perror("send");
                                 exit(EXIT_FAILURE);

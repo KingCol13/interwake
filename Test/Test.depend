@@ -1,9 +1,0 @@
-# depslib dependency file v1.0
-1598548059 source:/home/kingsley/coding/WOL/Test/main.c
-	<stdio.h>
-	<gcrypt.h>
-
-1597749920 /home/kingsley/coding/WOL/Test/crypt.h
-	<stdio.h>
-	<gcrypt.h>
-

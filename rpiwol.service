@@ -1,0 +1,28 @@
+[Unit]
+Description=Daemon to listen for wake on lan requests
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/rpiwol-daemon
+WorkingDirectory=/usr/local/etc/rpiwol
+
+DynamicUser=true
+RuntimeDirectory=fai-monitor
+RuntimeDirectoryMode=755
+
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateUsers=true
+ProtectHome=true
+
+ProtectSystem=strict
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target

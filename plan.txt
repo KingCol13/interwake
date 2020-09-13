@@ -13,3 +13,10 @@ DH exchange for salt would practically remove this.
 Server side events and responses:
 1. Receive connection, then send random bytes
 2. Receive authentication hash, check, send confirmation, then close connection.
+
+
+Installation:
+rpiwol.service for server side in /usr/local/lib/systemd/system
+config file (for client and server) in /usr/local/etc/rpiwol
+client executable at /usr/local/bin/rpiwol
+server executable at /usr/local/sbin/rpiwol-daemon
