@@ -11,10 +11,45 @@
 
 #define PORT 42304
 #define NONCELENGTH 32
-#define DIGEST_SIZE 32
+#define DIGEST_SIZE 64
+#define KEY_LENGTH 512
 
-const unsigned char password[] = "OpenSesame-WakeMyComputerPleaseMrPi";
 const char serverHostname[] = "localhost";
+
+int read_keyfile(const char *keyfile, unsigned char *keyBuffer){
+	/*
+	Reads the key from keyfile to the buffer provided.
+	*/
+
+	int retval;
+
+	FILE *keyHandle;
+	keyHandle = fopen(keyfile, "rb");
+	if(keyHandle == NULL){
+		perror("fopen");
+		exit(EXIT_FAILURE);
+	}
+
+	retval = fread(keyBuffer, 1, KEY_LENGTH, keyHandle);
+	if(retval<KEY_LENGTH){
+		printf("Keyfile too short. Exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	retval = fclose(keyHandle);
+	if(retval != 0){
+		perror("Error closing keyfile. Exiting. \n");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Read key: ");
+	for(unsigned int i=0; i<KEY_LENGTH; i++){
+		printf("%02x", keyBuffer[i]);
+	}
+	printf("\n");
+
+	return 0;
+}
 
 int hostname_to_ip(const char *hostname , char *ip){
     /*
@@ -73,6 +108,10 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
+	//Read the keyfile
+	unsigned char key[KEY_LENGTH];
+	read_keyfile("mykey", key);
+
     //allocate buffer for the nonce
     unsigned char nonceBuf[NONCELENGTH] = {'\0'};
     //read the nonce
@@ -90,12 +129,12 @@ int main(int argc, char const *argv[]){
     printf("\n");
 
     //allocate preHash buffer and copy password and nonce into it
-    unsigned char preHash[sizeof(password)+NONCELENGTH];
-    memcpy(preHash, password, sizeof(password));
-    memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
+    unsigned char preHash[KEY_LENGTH+NONCELENGTH];
+    memcpy(preHash, key, KEY_LENGTH);
+    memcpy(preHash+KEY_LENGTH, nonceBuf, NONCELENGTH);
 
     unsigned char hash[DIGEST_SIZE];
-    Hacl_SHA3_sha3_256(sizeof(password)+NONCELENGTH, preHash, hash);
+    Hacl_SHA3_sha3_512(KEY_LENGTH+NONCELENGTH, preHash, hash);
 
     //print hash
     printf("hash: ");

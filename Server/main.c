@@ -24,16 +24,51 @@
 #define BROADCAST_PORT 9
 
 #define NONCELENGTH 32
-#define DIGEST_SIZE 32
+#define DIGEST_SIZE 64
+#define KEY_LENGTH 512
 
 //TODO: double check all buffer overflow stuff, especially on sent/received stuff
-const unsigned char password[] = "OpenSesame-WakeMyComputerPleaseMrPi";
 const char macAddress[] = "2c:f0:5d:26:46:76";
 
 struct ep_ev_data{
     int fd;
     unsigned char *nonce;
 };
+
+int read_keyfile(const char *keyfile, unsigned char *keyBuffer){
+	/*
+	Reads the key from keyfile to the buffer provided.
+	*/
+
+	int retval;
+
+	FILE *keyHandle;
+	keyHandle = fopen(keyfile, "rb");
+	if(keyHandle == NULL){
+		perror("fopen");
+		exit(EXIT_FAILURE);
+	}
+
+	retval = fread(keyBuffer, 1, KEY_LENGTH, keyHandle);
+	if(retval<KEY_LENGTH){
+		printf("Keyfile too short. Exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	retval = fclose(keyHandle);
+	if(retval != 0){
+		perror("Error closing keyfile. Exiting. \n");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("Read key: ");
+	for(unsigned int i=0; i<KEY_LENGTH; i++){
+		printf("%02x", keyBuffer[i]);
+	}
+	printf("\n");
+
+	return 0;
+}
 
 void makeMagicPacket(unsigned char packet[]){
     unsigned int imac[6];
@@ -118,6 +153,11 @@ void disconnectClient(int epoll_fd, struct epoll_event ep_ev){
 }
 
 int main(){
+
+	//read key from file
+	unsigned char key[KEY_LENGTH];
+	read_keyfile("mykey", key);
+
     int opt = 1;
 
     //create epoll instance
@@ -258,12 +298,12 @@ int main(){
 
                         unsigned char *nonceBuf = ((struct ep_ev_data *) ep_ret[i].data.ptr)->nonce;
 
-                        unsigned char preHash[sizeof(password)+NONCELENGTH];
-                        memcpy(preHash, password, sizeof(password));
-                        memcpy(preHash+sizeof(password), nonceBuf, NONCELENGTH);
+                        unsigned char preHash[KEY_LENGTH+NONCELENGTH];
+                        memcpy(preHash, key, KEY_LENGTH);
+                        memcpy(preHash+KEY_LENGTH, nonceBuf, NONCELENGTH);
 
                         unsigned char serverHash[DIGEST_SIZE];
-                        Hacl_SHA3_sha3_256(sizeof(password)+NONCELENGTH, preHash, serverHash);
+                        Hacl_SHA3_sha3_512(KEY_LENGTH+NONCELENGTH, preHash, serverHash);
 
                         //print hash
                         printf("server hash: ");

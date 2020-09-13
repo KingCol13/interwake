@@ -1,5 +1,7 @@
+mykey
 *.depend
 *.layout
+obj/
 bin/
 build/
 packet.pcap

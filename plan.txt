@@ -14,6 +14,8 @@ Server side events and responses:
 1. Receive connection, then send random bytes
 2. Receive authentication hash, check, send confirmation, then close connection.
 
+To write 512 random bytes to "mykey"
+dd if=/dev/urandom of=mykey bs=1 count=512
 
 Installation:
 rpiwol.service for server side in /usr/local/lib/systemd/system
