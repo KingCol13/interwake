@@ -27,7 +27,7 @@
 #define DIGEST_SIZE 32
 
 //TODO: double check all buffer overflow stuff, especially on sent/received stuff
-const unsigned char password[] = "TestingPassword12345";
+const unsigned char password[] = "OpenSesame-WakeMyComputerPleaseMrPi";
 const char macAddress[] = "2c:f0:5d:26:46:76";
 
 struct ep_ev_data{

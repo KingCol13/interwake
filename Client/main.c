@@ -13,7 +13,7 @@
 #define NONCELENGTH 32
 #define DIGEST_SIZE 32
 
-const unsigned char password[] = "TestingPassword12345";
+const unsigned char password[] = "OpenSesame-WakeMyComputerPleaseMrPi";
 const char serverHostname[] = "localhost";
 
 int hostname_to_ip(const char *hostname , char *ip){
