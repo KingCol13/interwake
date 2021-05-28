@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "Hacl_SHA3.h"
+#include <sodium.h>
 
 #define NONCELENGTH 32
 #define DIGEST_SIZE 64
@@ -51,14 +51,18 @@ int read_keyfile(unsigned char *keyBuffer){
 
 int main(int argc, char const *argv[])
 {
-
+	
+	if (sodium_init() == -1) {
+		fprintf(stderr, "Libsodium failed to initialise, exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+	
 	if(argc<3)
 	{
 		fprintf(stderr, "Usage interwake address port\n");
 		exit(EXIT_FAILURE);
 	}
 
-	const char *serverHostname = argv[1];
 	unsigned short port;
 	sscanf(argv[2], "%hu", &port);
 		
@@ -93,6 +97,7 @@ int main(int argc, char const *argv[])
 	//Read the keyfile
 	unsigned char key[KEY_LENGTH];
 	read_keyfile(key);
+	sodium_mlock(key, KEY_LENGTH);
 
 	//allocate buffer for the nonce
 	unsigned char nonceBuf[NONCELENGTH] = {'\0'};
@@ -110,13 +115,13 @@ int main(int argc, char const *argv[])
 	}
 	printf("\n");
 
-	//allocate preHash buffer and copy password and nonce into it
+	//allocate preHash buffer and copy key and nonce into it
 	unsigned char preHash[KEY_LENGTH+NONCELENGTH];
 	memcpy(preHash, key, KEY_LENGTH);
 	memcpy(preHash+KEY_LENGTH, nonceBuf, NONCELENGTH);
 
 	unsigned char hash[DIGEST_SIZE];
-	Hacl_SHA3_sha3_512(KEY_LENGTH+NONCELENGTH, preHash, hash);
+	crypto_generichash(hash, sizeof hash, preHash, sizeof preHash, NULL, 0);
 
 	//print hash
 	printf("hash: ");

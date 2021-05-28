@@ -11,9 +11,7 @@
 #include <netinet/in.h>
 #include <sys/epoll.h>
 
-#include "Hacl_SHA3.h"
-#include "Hacl_Curve25519_51.h"
-#include "Lib_RandomBuffer_System.h"
+#include <sodium.h>
 
 #define TRUE   1
 #define FALSE  0
@@ -151,9 +149,15 @@ void disconnectClient(int epoll_fd, struct epoll_event ep_ev){
 }
 
 int main(){
-
+	
+	if (sodium_init() == -1) {
+		fprintf(stderr, "Libsodium failed to initialise, exiting.\n");
+		exit(EXIT_FAILURE);
+	}
+	
 	//read key from file
 	unsigned char key[KEY_LENGTH];
+	sodium_mlock(key, KEY_LENGTH);
 	read_keyfile("mykey", key);
 
     int opt = 1;
@@ -248,7 +252,7 @@ int main(){
                 }
 
                 unsigned char *nonceBuf = new_data->nonce;
-                Lib_RandomBuffer_System_randombytes(nonceBuf, NONCELENGTH);
+                randombytes_buf(nonceBuf, NONCELENGTH);
 
                 fprintf(stdout, "Nonce: ");
                 for(unsigned int i=0; i<NONCELENGTH; i++){
@@ -281,15 +285,18 @@ int main(){
                     }
                     fprintf(stdout, "Read %d bytes\n", numBytesRead);
                     //TODO: close connection if incorrect number of bytes received
-                    if(numBytesRead < DIGEST_SIZE){
+                    if(numBytesRead < DIGEST_SIZE)
+                    {
                         fprintf(stderr, "Insufficient digest size, closing connection.\n");
                         disconnectClient(epoll_fd, ep_ret[i]);
                     }
-                    else{   //correct number of hash bites sent
+                    else
+                    {   //correct number of hash bites sent
 
                         //print the received hash
                         fprintf(stdout, "Hash from client on socket %d: ", event_socket_fd);
-                        for(unsigned int i=0; i<DIGEST_SIZE; i++){
+                        for(unsigned int i=0; i<DIGEST_SIZE; i++)
+                        {
                             fprintf(stdout, "%02x", hashBuf[i]);
                         }
                         fprintf(stdout, "\n");
@@ -301,7 +308,7 @@ int main(){
                         memcpy(preHash+KEY_LENGTH, nonceBuf, NONCELENGTH);
 
                         unsigned char serverHash[DIGEST_SIZE];
-                        Hacl_SHA3_sha3_512(KEY_LENGTH+NONCELENGTH, preHash, serverHash);
+                        crypto_generichash(serverHash, sizeof serverHash, preHash, sizeof preHash, NULL, 0);
 
                         //print hash
                         fprintf(stdout, "server hash: ");
