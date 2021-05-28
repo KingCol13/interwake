@@ -9,4 +9,3 @@ add_executable(interwaked interwaked.c)
 
 target_link_libraries(interwake PRIVATE sodium)
 target_link_libraries(interwaked PRIVATE sodium)
-

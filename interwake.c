@@ -13,7 +13,8 @@
 #define DIGEST_SIZE 64
 #define KEY_LENGTH 512
 
-int read_keyfile(unsigned char *keyBuffer){
+int readKeyfile(unsigned char *keyBuffer)
+{
 	/*
 	Reads the key from keyfile to the buffer provided.
 	*/
@@ -28,20 +29,23 @@ int read_keyfile(unsigned char *keyBuffer){
 
 	FILE *keyHandle;
 	keyHandle = fopen(keyDir, "rb");
-	if(keyHandle == NULL){
+	if(keyHandle == NULL)
+	{
 		perror("fopen");
 		fprintf(stderr, "Could not open keyfile at %s, does it exist?\n", keyDir);
 		exit(EXIT_FAILURE);
 	}
 
 	retval = fread(keyBuffer, 1, KEY_LENGTH, keyHandle);
-	if(retval<KEY_LENGTH){
+	if(retval<KEY_LENGTH)
+	{
 		fprintf(stderr, "Keyfile too short. Exiting.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	retval = fclose(keyHandle);
-	if(retval != 0){
+	if(retval != 0)
+	{
 		fprintf(stderr, "Error closing keyfile. Exiting. \n");
 		exit(EXIT_FAILURE);
 	}
@@ -52,7 +56,8 @@ int read_keyfile(unsigned char *keyBuffer){
 int main(int argc, char const *argv[])
 {
 	
-	if (sodium_init() == -1) {
+	if (sodium_init() == -1)
+	{
 		fprintf(stderr, "Libsodium failed to initialise, exiting.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -75,13 +80,15 @@ int main(int argc, char const *argv[])
 	hints.ai_flags = 0;
 	hints.ai_protocol = 0;				/* Any protocol */
 	retval = getaddrinfo(argv[1], argv[2], &hints, &result);
-	if (retval != 0) {
+	if (retval != 0)
+	{
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(retval));
 		exit(EXIT_FAILURE);
 	}
 	
 	// Connect to first working result
-	for (rp = result; rp != NULL; rp = rp->ai_next) {
+	for (rp = result; rp != NULL; rp = rp->ai_next)
+	{
 		sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 		if (sock == -1)
 			continue;
@@ -96,21 +103,23 @@ int main(int argc, char const *argv[])
 	
 	//Read the keyfile
 	unsigned char key[KEY_LENGTH];
-	read_keyfile(key);
+	readKeyfile(key);
 	sodium_mlock(key, KEY_LENGTH);
 
 	//allocate buffer for the nonce
 	unsigned char nonceBuf[NONCELENGTH] = {'\0'};
 	//read the nonce
 	numBytes = read( sock , nonceBuf, NONCELENGTH);
-	if(numBytes == -1){
+	if(numBytes == -1)
+	{
 		perror("read");
 		exit(EXIT_FAILURE);
 	}
 
 	//print the nonce
 	printf("Nonce: ");
-	for(unsigned int i=0; i<NONCELENGTH; i++){
+	for(unsigned int i=0; i<NONCELENGTH; i++)
+	{
 		printf("%02x", nonceBuf[i]);
 	}
 	printf("\n");
@@ -125,7 +134,8 @@ int main(int argc, char const *argv[])
 
 	//print hash
 	printf("hash: ");
-	for (unsigned int i = 0; i < DIGEST_SIZE; i++){
+	for (unsigned int i = 0; i < DIGEST_SIZE; i++)
+	{
 		printf("%02x", hash[i]);
 	}
 	printf("\n");
@@ -135,7 +145,8 @@ int main(int argc, char const *argv[])
 
 	//send the hash
 	numBytes = send(sock , hash , DIGEST_SIZE , 0 );
-	if(numBytes == -1){
+	if(numBytes == -1)
+	{
 		perror("send");
 		exit(EXIT_FAILURE);
 	}
@@ -144,7 +155,8 @@ int main(int argc, char const *argv[])
 
 	char serverMessage[255] = {'\0'};
 	numBytes = read(sock, serverMessage, 255);
-	if(numBytes == -1){
+	if(numBytes == -1)
+	{
 		perror("send");
 		exit(EXIT_FAILURE);
 	}
