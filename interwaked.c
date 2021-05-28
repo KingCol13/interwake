@@ -22,7 +22,6 @@
 #define KEY_LENGTH 512
 
 //TODO: double check all buffer overflow stuff, especially on sent/received stuff
-const char macAddress[] = "2c:f0:5d:26:46:76";
 
 struct ep_ev_data
 {
