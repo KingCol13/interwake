@@ -15,11 +15,7 @@
 
 #define TRUE   1
 #define FALSE  0
-#define PORT 42304
 #define MAX_EVENTS 500
-
-#define BROADCAST_ADDRESS "192.168.1.255"
-#define BROADCAST_PORT 9
 
 #define NONCELENGTH 32
 #define DIGEST_SIZE 64
@@ -34,7 +30,7 @@ struct ep_ev_data
     unsigned char *nonce;
 };
 
-int read_keyfile(const char *keyfile, unsigned char *keyBuffer)
+int readKeyfile(const char *keyfile, unsigned char *keyBuffer)
 {
 	/*
 	Reads the key from keyfile to the buffer provided.
@@ -70,13 +66,75 @@ int read_keyfile(const char *keyfile, unsigned char *keyBuffer)
 	return 0;
 }
 
-void makeMagicPacket(unsigned char packet[])
+int readConfig(unsigned int *imac, struct in_addr *broadcastAddress, unsigned short *broadcastPort, unsigned short *listenPort)
 {
-    unsigned int imac[6];
+	int retval;
+
+	FILE *configHandle;
+	configHandle = fopen("/etc/interwake/interwake.conf", "r");
+	if(configHandle == NULL)
+	{
+		perror("fopen");
+		exit(EXIT_FAILURE);
+	}
+	
+	char *line = NULL;
+	char *valString;
+	size_t line_len;
+	ssize_t nread;
+	nread = getline(&line, &line_len, configHandle);
+	if(nread == -1)
+	{
+		fprintf(stderr, "Error reading broadcast_address from config.\n");
+	}
+	valString = strchr(line, '=')+1;
+	retval = inet_aton(valString, broadcastAddress);
+	if(retval == 0)
+	{
+		fprintf(stderr, "Invalid broadcast address: %s.\n", valString);
+		exit(EXIT_FAILURE);
+	}
+
+	nread = getline(&line, &line_len, configHandle);
+	if(nread == -1)
+	{
+		fprintf(stderr, "Error reading broadcast_port from config.\n");
+	}
+	valString = strchr(line, '=')+1;
+	*broadcastPort = (unsigned short) strtoul(valString, NULL, 0);
+	
+	nread = getline(&line, &line_len, configHandle);
+	if(nread == -1)
+	{
+		fprintf(stderr, "Error reading mac_address from config.\n");
+	}
+	valString = strchr(line, '=')+1;
+	sscanf(valString,"%x:%x:%x:%x:%x:%x", &(imac[0]), &(imac[1]), &(imac[2]), &(imac[3]), &(imac[4]), &(imac[5]));
+	
+	nread = getline(&line, &line_len, configHandle);
+	if(nread == -1)
+	{
+		fprintf(stderr, "Error reading listen_port from config.\n");
+	}
+	valString = strchr(line, '=')+1;
+	*listenPort = (unsigned short) strtoul(valString, NULL, 0);
+	
+	retval = fclose(configHandle);
+	if(retval != 0)
+	{
+		perror("fclose");
+		exit(EXIT_FAILURE);
+	}
+
+	fprintf(stdout, "Read config.\n");
+	fflush(stdout);
+}
+
+void makeMagicPacket(unsigned char packet[], unsigned int *imac)
+{
     unsigned char mac[6];
 
-    sscanf(macAddress,"%x:%x:%x:%x:%x:%x", &(imac[0]), &(imac[1]), &(imac[2]), &(imac[3]), &(imac[4]), &(imac[5]));
-    	// 6 x 0xFF on start of packet
+    // 6 x 0xFF on start of packet
 	for(unsigned int i = 0; i < 6; i++)
 	{
 		packet[i] = 0xFF;
@@ -89,7 +147,7 @@ void makeMagicPacket(unsigned char packet[])
 	}
 }
 
-void sendWOLPacket(){
+void sendWOLPacket(struct in_addr broadcastAddress, unsigned int *imac, unsigned short broadcastPort){
     int opt = 1;
     int broadcastSocket = socket(PF_INET, SOCK_DGRAM, 0);
     if(broadcastSocket<0)
@@ -117,8 +175,8 @@ void sendWOLPacket(){
     struct sockaddr_in broadcastAddr;
     memset(&broadcastAddr, 0, sizeof(broadcastAddr));   /* Zero out structure */
     broadcastAddr.sin_family = AF_INET;                 /* Internet address family */
-    broadcastAddr.sin_addr.s_addr = inet_addr("192.168.1.255");//BROADCAST_ADDRESS);/* Broadcast IP address */
-    broadcastAddr.sin_port = htons(BROADCAST_PORT);         /* Broadcast port */
+    broadcastAddr.sin_addr = broadcastAddress;
+    broadcastAddr.sin_port = htons(broadcastPort);         /* Broadcast port */
 
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));   /* Zero out structure */
@@ -133,7 +191,7 @@ void sendWOLPacket(){
     }
 
     unsigned char packet[102];
-    makeMagicPacket(packet);
+    makeMagicPacket(packet, imac);
 
     int bytesSent = sendto(broadcastSocket, packet, sizeof(unsigned char) * 102, 0, (struct sockaddr*) &broadcastAddr, sizeof(broadcastAddr));
     if(bytesSent == -1)
@@ -175,8 +233,14 @@ int main()
 	//read key from file
 	unsigned char key[KEY_LENGTH];
 	sodium_mlock(key, KEY_LENGTH);
-	read_keyfile("mykey", key);
-
+	readKeyfile("mykey", key);
+	
+	// Read config
+	unsigned int imac[6];
+	struct in_addr broadcastAddress;
+	unsigned short broadcastPort, listenPort;
+	readConfig(imac, &broadcastAddress, &broadcastPort, &listenPort);
+	
     int opt = 1;
 
     //create epoll instance
@@ -200,7 +264,7 @@ int main()
     struct sockaddr_in address;
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(listenPort);
 
     unsigned int addrlen = sizeof(address);
 
@@ -355,7 +419,7 @@ int main()
 
                         if(auth_val==0){ //authentication succesful
                             fprintf(stdout, "Authentication successful. Sending wake packet.\n");
-                            sendWOLPacket();
+                            sendWOLPacket(broadcastAddress, imac, broadcastPort);
                             char msgSuccess[] = "Success.\n";
                             if(send(event_socket_fd, msgSuccess, strlen(msgSuccess), 0)==-1)
                             {
