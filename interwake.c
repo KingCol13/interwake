@@ -9,7 +9,6 @@
 
 #include <sodium.h>
 
-#define NONCELENGTH 32
 #define DIGEST_SIZE 64
 #define KEY_LENGTH 512
 
@@ -105,29 +104,40 @@ int main(int argc, char const *argv[])
 	unsigned char key[KEY_LENGTH];
 	readKeyfile(key);
 	sodium_mlock(key, KEY_LENGTH);
-
-	//allocate buffer for the nonce
-	unsigned char nonceBuf[NONCELENGTH] = {'\0'};
-	//read the nonce
-	numBytes = read( sock , nonceBuf, NONCELENGTH);
+	
+	// Allocate room for keys and generate client keys
+	unsigned char serverPK[crypto_kx_PUBLICKEYBYTES] = {'\0'};
+	unsigned char clientPK[crypto_kx_PUBLICKEYBYTES];
+	unsigned char clientSK[crypto_kx_SECRETKEYBYTES];
+	unsigned char clientTX[crypto_kx_SESSIONKEYBYTES];
+	crypto_kx_keypair(clientPK, clientSK);
+	
+	//read the server public key
+	numBytes = read( sock , serverPK, crypto_kx_PUBLICKEYBYTES);
 	if(numBytes == -1)
 	{
 		perror("read");
 		exit(EXIT_FAILURE);
 	}
 
-	//print the nonce
-	printf("Nonce: ");
-	for(unsigned int i=0; i<NONCELENGTH; i++)
+	// print the server public key
+	printf("Server public key: ");
+	for(unsigned int i=0; i<crypto_kx_PUBLICKEYBYTES; i++)
 	{
-		printf("%02x", nonceBuf[i]);
+		printf("%02x", serverPK[i]);
 	}
 	printf("\n");
-
-	//allocate preHash buffer and copy key and nonce into it
-	unsigned char preHash[KEY_LENGTH+NONCELENGTH];
-	memcpy(preHash, key, KEY_LENGTH);
-	memcpy(preHash+KEY_LENGTH, nonceBuf, NONCELENGTH);
+	
+	if (crypto_kx_client_session_keys(NULL, clientTX, clientPK, clientSK, serverPK) != 0)
+	{
+    	fprintf(stderr, "Suspicious server key, exiting.\n");
+    	exit(EXIT_FAILURE);
+	}
+	
+	//allocate preHash buffer and copy derived key and auth key into it
+	unsigned char preHash[crypto_kx_SESSIONKEYBYTES+KEY_LENGTH];
+	memcpy(preHash, clientTX, crypto_kx_SESSIONKEYBYTES);
+	memcpy(preHash+crypto_kx_SESSIONKEYBYTES, key, KEY_LENGTH);
 
 	unsigned char hash[DIGEST_SIZE];
 	crypto_generichash(hash, sizeof hash, preHash, sizeof preHash, NULL, 0);
@@ -143,8 +153,11 @@ int main(int argc, char const *argv[])
 	//sleep before sending hash
 	sleep(1);
 
-	//send the hash
-	numBytes = send(sock , hash , DIGEST_SIZE , 0 );
+	//send the client public key and hash
+	unsigned char clientSend[crypto_kx_PUBLICKEYBYTES+DIGEST_SIZE];
+	memcpy(clientSend, clientPK, crypto_kx_PUBLICKEYBYTES);
+	memcpy(clientSend+crypto_kx_PUBLICKEYBYTES, hash, DIGEST_SIZE);
+	numBytes = send(sock, clientSend, crypto_kx_PUBLICKEYBYTES+DIGEST_SIZE, 0);
 	if(numBytes == -1)
 	{
 		perror("send");

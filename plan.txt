@@ -1,18 +1,8 @@
 1. Client requests from server
-2. Server sends random bytes (salt)
-	or use diffie-hellman to get a salt? maybe in v2
-	this prevents a listener brute forcing password once they know the salt, could just make password bigger?
-3. Client concats authentication password and salt, hashes and sends
-4. Server broadcasts WOL packet
+2. Server sends public key
+3. Client creates dhKey, hashes dhKey+key and sends client pub key and hash
+4. Server checks message and broadcasts WOL packet
 5. Server sends confirmation, e.g: "Accepted."
-
-Security notes:
-If hash and nonce are collected, password could be brute forced.
-DH exchange for salt would practically remove this.
-
-Server side events and responses:
-1. Receive connection, then send random bytes
-2. Receive authentication hash, check, send confirmation, then close connection.
 
 To write 512 random bytes to "mykey"
 dd if=/dev/urandom of=mykey bs=1 count=512
