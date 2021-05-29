@@ -3,8 +3,8 @@ Description=Daemon to listen for wake on lan requests
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/rpiwol-daemon
-WorkingDirectory=/usr/local/etc/rpiwol
+ExecStart=/usr/local/sbin/interwakd
+WorkingDirectory=/usr/local/etc/interwake
 
 #Dynamic user implies:
 #ProtectSystem=strict
@@ -14,7 +14,7 @@ WorkingDirectory=/usr/local/etc/rpiwol
 DynamicUser=true
 
 #Only allow access to keyfile
-ReadOnlyPaths=/usr/local/etc/rpiwol
+ReadOnlyPaths=/usr/local/etc/interwake
 
 #redirect outputs to journal
 StandardOutput=journal+console
