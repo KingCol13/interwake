@@ -14,4 +14,4 @@ target_link_libraries(interwaked PRIVATE sodium)
 #install instructions
 install(TARGETS interwake DESTINATION bin)
 install(TARGETS interwaked DESTINATION sbin)
-install(FILES interwake.conf DESTINATION etc/interwake)
+#don't overwrite the config

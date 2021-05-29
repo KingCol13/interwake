@@ -71,7 +71,7 @@ int readConfig(unsigned int *imac, struct in_addr *broadcastAddress, unsigned sh
 	int retval;
 
 	FILE *configHandle;
-	configHandle = fopen("/etc/interwake/interwake.conf", "r");
+	configHandle = fopen("/usr/local/etc/interwake/interwake.conf", "r");
 	if(configHandle == NULL)
 	{
 		perror("fopen");
@@ -231,7 +231,7 @@ int main()
 	//read key from file
 	unsigned char key[KEY_LENGTH];
 	sodium_mlock(key, KEY_LENGTH);
-	readKeyfile("mykey", key);
+	readKeyfile("/etc/local/interwake/interwakeKeyfile", key);
 	
 	// Read config
 	unsigned int imac[6];

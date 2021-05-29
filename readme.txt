@@ -20,12 +20,14 @@ Follow a guide to enable wake-on-LAN (WOL) for your target machine.
 
 Install:
 
+sudo make install
+
 On interwake server:
-mkdir /etc/interwake
-cp interwake.conf /etc/interwake/
-#configure /etc/interwake/interwake.conf with mac address of machine and port for daemon to listen on
-#create a keyfile
-dd if=/dev/urandom of=/etc/interwake/interwakeKeyfile bs=1 count=512
+mkdir /usr/local/etc/interwake
+cp interwake.conf /usr/local/etc/interwake/
+#configure /usr/local/etc/interwake/interwake.conf with mac address of machine and port for daemon to listen on
+#create a keyfile:
+dd if=/dev/urandom of=/usr/local/etc/interwake/interwakeKeyfile bs=1 count=512
 
 On interwake client:
 copy keyfile from server to ~/.config/interwakeKeyfile
