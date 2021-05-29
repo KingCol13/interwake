@@ -1,7 +1,7 @@
-#Description
+## Description
 Tool to run on low power linux machine e.g. raspberry pi or other sbc to wake a larger/more power hungry machine using wake-on-lan.
 
-# Dependencies
+## Dependencies
 
 libsodium
 Install with:
@@ -12,7 +12,7 @@ fedora:
 gentoo:
 `emerge dev-libs/libsodium`
 
-# Compile
+## Compile
 
 ```
 mkdir build
@@ -21,11 +21,11 @@ cmake ..
 make
 ```
 
-# Install
+## Install
 
 `sudo make install`
 
-## On interwake server:
+### On interwake server:
 
 ```
 mkdir /usr/local/etc/interwake
@@ -38,10 +38,10 @@ run with ./interwaked or optionally:
 use interwake.service systemd unit file, can be placed in /usr/local/lib/systemd/system
 
 
-## On interwake client:
+### On interwake client:
 
 copy keyfile from server to ~/.config/interwakeKeyfile
 Follow a guide to enable wake-on-LAN (WOL) for your target machine.
 
-# Use
+## Use
 On client: `interwake hostname port`
