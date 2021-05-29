@@ -7,5 +7,11 @@ project(interwake)
 add_executable(interwake interwake.c)
 add_executable(interwaked interwaked.c)
 
+#link libsodium
 target_link_libraries(interwake PRIVATE sodium)
 target_link_libraries(interwaked PRIVATE sodium)
+
+#install instructions
+install(TARGETS interwake DESTINATION bin)
+install(TARGETS interwaked DESTINATION sbin)
+install(FILES interwake.conf DESTINATION etc/interwake)
