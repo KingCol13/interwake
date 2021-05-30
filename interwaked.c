@@ -1,5 +1,3 @@
-//Example code: A simple server side code, which echos back the received message.
-//Handle multiple socket connections with select and fd_set on Linux
 #include <stdio.h>
 #include <string.h>   //strlen
 #include <stdlib.h>
@@ -231,7 +229,7 @@ int main()
 	//read key from file
 	unsigned char key[KEY_LENGTH];
 	sodium_mlock(key, KEY_LENGTH);
-	readKeyfile("/etc/local/interwake/interwakeKeyfile", key);
+	readKeyfile("/usr/local/etc/interwake/interwakeKeyfile", key);
 	
 	// Read config
 	unsigned int imac[6];

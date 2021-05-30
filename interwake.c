@@ -93,7 +93,7 @@ int main(int argc, char const *argv[])
 			continue;
 
 		if (connect(sock, rp->ai_addr, rp->ai_addrlen) != -1)
-			break;                  /* Success */
+			break;		/* Success */
 
 		close(sock);
 	}
@@ -130,8 +130,8 @@ int main(int argc, char const *argv[])
 	
 	if (crypto_kx_client_session_keys(NULL, clientTX, clientPK, clientSK, serverPK) != 0)
 	{
-    	fprintf(stderr, "Suspicious server key, exiting.\n");
-    	exit(EXIT_FAILURE);
+		fprintf(stderr, "Suspicious server key, exiting.\n");
+		exit(EXIT_FAILURE);
 	}
 	
 	//allocate preHash buffer and copy derived key and auth key into it
