@@ -3,7 +3,7 @@ Description=Daemon to listen for wake on lan requests
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/interwakd
+ExecStart=/usr/local/sbin/interwaked
 WorkingDirectory=/usr/local/etc/interwake
 
 #Dynamic user implies:

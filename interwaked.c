@@ -219,7 +219,7 @@ void disconnectClient(int epoll_fd, struct epoll_event ep_ev)
 
 int main()
 {
-	
+	printf("Starting interwaked.\n");
 	if (sodium_init() == -1)
 	{
 		fprintf(stderr, "Libsodium failed to initialise, exiting.\n");
