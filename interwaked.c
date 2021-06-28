@@ -64,7 +64,7 @@ int readKeyfile(const char *keyfile, unsigned char *keyBuffer)
 	return 0;
 }
 
-int readConfig(unsigned int *imac, struct in_addr *broadcastAddress, unsigned short *broadcastPort, unsigned short *listenPort)
+void readConfig(unsigned int *imac, struct in_addr *broadcastAddress, unsigned short *broadcastPort, unsigned short *listenPort)
 {
 	int retval;
 
