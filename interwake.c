@@ -117,6 +117,7 @@ int main(int argc, char const *argv[])
 	if(numBytes == -1)
 	{
 		perror("read");
+		printf("Error reading server public key.\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -170,7 +171,8 @@ int main(int argc, char const *argv[])
 	numBytes = read(sock, serverMessage, 255);
 	if(numBytes == -1)
 	{
-		perror("send");
+		perror("read");
+		printf("Error reading confirmation from server.\n");
 		exit(EXIT_FAILURE);
 	}
 
